@@ -6,7 +6,7 @@
 - About kit OS
 - Planning 
 - How to record data and images
-- Running an experiment for 3 hours
+- Running an experiment 
 - Testing 
 - Locating the ISS
 
