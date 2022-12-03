@@ -16,4 +16,4 @@
 > This page is currently under develop.
 
 
-![alt text](https://mpng.subpng.com/20180713/usb/kisspng-raspberry-pi-3-computer-cases-housings-single-bo-raspberry-pi-5b486017599cb0.1271911815314698473671.jpg)
+![alt text](https://projects-static.raspberrypi.org/projects/raspberry-pi-getting-started/be011608bac5c05e7208dfce46991c8adf325019/en/images/pi-plug-in.gif)
