@@ -14,6 +14,6 @@
 - Locating the ISS
 
 
-# About this page
+
 > This page is currently under develop
 > :(
