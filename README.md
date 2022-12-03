@@ -14,3 +14,6 @@
 # About this page
 > The GR.ISS team.
 > This page is currently under develop.
+
+
+https://www.flaticon.com/free-icon/raspberry-pi_5969184
