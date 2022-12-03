@@ -1,6 +1,20 @@
 ## Table of contents
 
 
+- Introduction 
+> text
+>> text
+
+- Kit assembly 
+> text
+>> text
+
+- About kit OS
+> text
+>> text
+
+- Planning 
+
 - How to record data and images
 > text
 >> text
