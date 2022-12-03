@@ -7,7 +7,8 @@
 - Planning 
 - How to record data and images
 - Running an experiment for 3 hours
-
+- Testing 
+- Locating the ISS
 
 
 # About this page
