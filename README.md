@@ -1,4 +1,6 @@
 # This page is under develop
 
 
-- hello
+- How to record data and images
+
+- Running an experiment for 3 hours
