@@ -1,3 +1,6 @@
+# The raspberry pi 
+![alt text](https://projects-static.raspberrypi.org/projects/raspberry-pi-getting-started/be011608bac5c05e7208dfce46991c8adf325019/en/images/pi-plug-in.gif)
+
 ## Table of contents
 
 
@@ -14,6 +17,3 @@
 # About this page
 > The GR.ISS team.
 > This page is currently under develop.
-
-
-![alt text](https://projects-static.raspberrypi.org/projects/raspberry-pi-getting-started/be011608bac5c05e7208dfce46991c8adf325019/en/images/pi-plug-in.gif)
