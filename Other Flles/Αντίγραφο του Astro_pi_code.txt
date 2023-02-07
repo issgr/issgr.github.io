@@ -1,0 +1,144 @@
+from sense_hat import SenseHat
+from time import sleep
+import math
+from orbit import ISS
+from pathlib import Path
+from csv import reader
+from datetime import datetime, timedelta
+from picamera import PiCamera, Color
+
+b = (0, 0, 255) #Το χρώμα μπλε
+w = (255, 255, 255) #Το χρώμα άσπρο
+s = SenseHat()
+s.clear()
+startup_img = [
+  w, w, w, w, w, w, w, w, 
+  w, w, b, w, w, b, w, w, 
+  w, w, b, w, w, b, w, w, 
+  w, w, w, w, w, w, w, w, 
+  w, w, w, b, b, w, w, w, 
+  w, b, w, w, w, w, b, w, 
+  w, w, b, b, b, b, w, w, 
+  w, w, w, w, w, w, w, w
+]
+s.set_pixels(startup_img)
+sleep(3) #Holding that smile :)
+
+cam = PiCamera()
+
+ListOfVals = []
+totaltime = 15
+timeperloop = 3
+
+base_folder = Path(__file__).parent.resolve()
+csvfilewrite = open(str(base_folder) + "/ourresults.csv", 'w+')
+csvfilewrite.write("")
+csvfilewrite.close()
+csvfileapp = open(str(base_folder) + "/ourresults.csv", 'a')
+csv_start_and_end_info = open(str(base_folder) + "info.csv", 'a') 
+
+starttime = datetime.now()
+def calculate_height(stop: bool): 
+  #part 1 - calc acc
+  accel = s.get_accelerometer_raw()
+  accel_x = accel['x']
+  accel_y = accel['y']
+  accel_z = accel['z']
+  totalacc = math.sqrt(accel_x ** 2 + accel_y ** 2 + accel_z**2)
+  g = totalacc * 9.80655 #S.I. 9.80665
+  print(g)
+  #part 2 - calc h
+  G = 6.6743 * (10**-11)
+  M = 5.9722 * (10**24) # S.I.
+  R_earth = 6378.1 * 1000 # S.I.
+  h = math.sqrt(G * M / g) - R_earth
+  if stop:
+    return h
+  h = round(h/1000)
+  try:
+    csvfileapp.write(str(h) + ",")
+    csvfileapp.write(str(g) + ",")
+  except(ValueError):
+    show_msg("Value error occured", 0.06)
+    return 
+  show_msg(str(h) + "km", 0.08)
+  #part 3 - eval 
+  try:
+    loc = ISS.coordinates()
+    true_h_to_eval = int(loc.elevation.km)
+    if h > true_h_to_eval - 20 and h < true_h_to_eval + 20:
+      csvfileapp.write(str(True) + "\n")
+    else:
+      csvfileapp.write(str(False) + "\n") 
+  except(ValueError):
+    show_msg("Value error occured", 0.06)
+    return 
+    #repeat  
+  return 
+  
+#Αυτή η συνάρτηση μπορεί να εμφανίσει στην οθόνη του sense hat ένα string που θα περάσουμε
+def show_msg(string: str, ss: float):
+  s.show_message(string, text_colour = b, back_colour=w, scroll_speed = ss)
+
+def return_numbers(Array): #Array Elements added from the Csv look like this "['2']"
+  newstr = ''
+  for i in Array:
+      for j in range(0, len(i)):
+          if i[j].isdigit():
+              newstr += i[j]
+      newstr += ","
+  return newstr
+  #Ιδέα: Αφού την συνάρτηση αυτή την χρησιμοποιώ μια φορά, να την κάνω lambda
+
+def snap(height: int):
+  cam.start_preview()
+  cam.annotate_foreground = Color('red')
+  cam.annotate_text_size = 40
+  cam.annotate_text = str(datetime.now()) + "," + str(ISS.location.latitude()) + "," + str(ISS.location.longitude()) + "," + str(height) + "km"
+  csv_start_and_end_info.write(str(datetime.now()) + "," + 
+                     str(ISS.location()['longitude']) + "," + str(ISS.location()['latitude']) + ","
+                     + str(height) + "km" + "\n")
+  sleep(10)
+  cam.stop_preview()
+
+
+
+start_height = calculate_height(True)
+show_msg("G (Gravitational constant) = 6.6743 * 10^-11, M (Earth Mass, kg) = 5.9722 * 10^24, R (Earth Radius, m) = 6378.1 * 10^3", 0.04)
+snap(start_height)
+#3hr calculate h
+while (datetime.now() < starttime + timedelta(seconds=totaltime)):
+  calculate_height(False)
+  sleep(timeperloop)
+  
+csvfileapp.close()
+#p1 - csvtolist  
+with open(str(base_folder) + "/ourresults.csv") as csvfile:
+    csv_read = reader(csvfile, delimiter=',')
+    for row in csv_read:
+      ListOfVals.append(return_numbers(row)[:-1].split(",")[0]) 
+#part 2 - avg   
+sum = 0
+print(ListOfVals)
+for i in ListOfVals:
+  sum += int(i)
+print(len(ListOfVals))
+avgval = sum / int(len(ListOfVals)) 
+show_msg(str(avgval) + "km average", 0.06)
+
+end_height = calculate_height(True)
+if start_height - end_height >= 5:
+  snap(end_height)
+  csv_start_and_end_info.write("\n-5m height difference during experiment," + str(start_height - end_height))
+else:
+  csv_start_and_end_info.write("\nless than 5m height difference during experiment" + str(start_height - end_height))
+csv_start_and_end_info.write("\n" + str(avgval))
+csv_start_and_end_info.close()
+show_msg("Exit code 0", 0.07)
+
+s.clear()
+cam.close()
+
+
+
+#issgr.github.io - Ιστοσελίδα αρχειοθέτησης του πειράματος της ομάδας μας - εκεί βρίσκονται όλα τα αρχεία και τα κείμενα τα οποία συντάξαμε
