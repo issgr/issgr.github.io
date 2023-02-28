@@ -1,0 +1,203 @@
+from sense_hat import SenseHat
+from time import sleep
+import math
+from orbit import ISS
+from pathlib import Path
+from csv import reader
+from datetime import datetime, timedelta
+from picamera import PiCamera, Color
+
+b = (0, 0, 255)     #Το χρώμα μπλε
+w = (255, 255, 255) #Το χρώμα άσπρο
+s = SenseHat()      #Aντικείμενο Sense Hat
+cam = PiCamera()    #Αντικείμενο PiCamera
+s.clear()           #Εκκαθάριση της οθόνης του Sense Hat
+
+#Παρακάτω δημιουργήσαμε ένα πίνακα 8x8 που εκπροσωπεί τα χρώματα 
+#που θα οριστούν σε κάθε pixel του Sense Hat
+
+startup_img = [
+  w, w, w, w, w, w, w, w, 
+  w, w, b, w, w, b, w, w, 
+  w, w, b, w, w, b, w, w, 
+  w, w, w, w, w, w, w, w, 
+  w, w, w, b, b, w, w, w, 
+  w, b, w, w, w, w, b, w, 
+  w, w, b, b, b, b, w, w, 
+  w, w, w, w, w, w, w, w
+]
+s.set_pixels(startup_img)
+sleep(3) #Holding that smile :)
+
+ListOfVals = []   #Άδειος πίνακας τιμών
+totaltime = 10800	  #Η συνολική ώρα εκτέλεσης σε δευτερόλεπτα
+timeperloop = 30	#Ώρα ανά επανάληψη
+
+base_folder = Path(__file__).parent.resolve()  #Του Path του γονικού φακέλου του main.py
+
+csvfileapp = open(str(base_folder) + "/ourresults.csv", 'a')  #Δημιουργία του αρχείου ourresults.csv στο φάκελο του main.py, σε λειτουργία σύναψης.
+#Στην πρώτη στήλη του ourresults.csv περιέχεται το ύψος του σταθμού (σε χιλιόμετρα),στη δεύτερη η επιτάχυνσή του (m/s^2)
+#και στην τρίτη το αποτέλεσμα της συνθήκης της συνάρτησης calculate_height(), η οποία εμφανίζεται παρακάτω.
+csvclear1 = open(str(base_folder) + "/ourresults.csv", 'w+')  #Ξανανοίγουμε το ourresults.csv σε λειτουργία αντικατάστασης
+csvclear1.write("") #εκκαθαριση του ourresults.csv στην εκκηνιση.
+csvclear1.close() #Κλείνουμε το ourresults.csv που ανοίξαμε σε λειτουργία αντικατάστασης
+
+#Ομοίος με το ourresults.csv, δημιουργούμε και εκκαθαρίζουμε το info.csv, στο οποίο θα επισυνάψουμε την την πρώτη και τελευταία μέτρηση του ύψους,
+#την γεωγραφική θέση του σταθμού και την ώρα που μετρήθηκαν και τέλος σε άλλη σειρά την υψομετρική διαφορά και την μέση τιμή του ύψους
+info_csv = open(str(base_folder) + "/info.csv", 'a') 
+csvclear2 = open(str(base_folder) + "/info.csv", 'w+')
+csvclear2.write("")
+csvclear2.close()
+
+starttime = datetime.now()
+
+def calculate_height(stop: bool): #Η stop πρέπει να είναι τύπου bool
+  #Μέρος 1 - Σε αυτο το μερος υπολογίζουμε την επιτάχυνση του ISS 
+  #χρησιμοποιώντας την αδρανειακή μονάδα μέτρησης 
+  accel = s.get_accelerometer_raw()
+  accel_x = accel['x']
+  accel_y = accel['y']
+  accel_z = accel['z']
+  totalacc = math.sqrt(accel_x ** 2 + accel_y ** 2 + accel_z**2)
+  g = totalacc * 9.80655 #S.I. 
+
+  #Μέρος 2 - Εδώ υπολογίζουμε το ύψος του ISS, χρησιμοποιώντας τον τυπο της έντασης του βαρυτικού πεδίου
+  #και λαμβάνοντας σταθερές από το SI. (Βαρυτική σταθερά, Μάζα Γης, Ακτίνα Γης).
+  G = 6.6743 * (10**-11)
+  M = 5.9722 * (10**24) 
+  R_earth = 6378.1 * 1000 
+  h = math.sqrt(G * M / g) - R_earth #Η συνάρτηση math.sqrt() επιστρέφει float τιμή
+  
+  """Στην παρακάτω συνθήκη, αν ορίσουμε την παράμετρο stop αληθής,
+   θα επιστρέψουμε το στιγμιαίο ύψος σε μεταβλητή. Ενώ,αν ορίσουμε την παράμετρο stop ως ψευδής, 
+   θα συνεχίσει στα παρακάτω σκέλη της συνάρτησης"""
+  if stop:
+    return h
+  h = round(h/1000) #Η συνάρτηση round() επιστρέφει τιμή τύπου int
+
+  """Αν το csvfileapp δεν εχει κλείσει θα επισυνάψει στο ourresults.csv
+  το ύψος και την επιτάχυνση, ενώ αν είναι κλειστό και πετάξει σφάλμα τιμής, θα εμφανίσει ενα μήνυμα
+   πριν παραλήψει το υπολοίπο μέρος της τωρινής επανάληψης της συνάρτησης, επιστρέφοντας κενή τιμή."""
+  try:
+    csvfileapp.write(str(h) + ",")
+    csvfileapp.write(str(g) + ",")
+  except(ValueError):
+    show_msg("Value error occured", 0.06)
+    return 
+  show_msg(str(h) + "km", 0.08)
+
+  #Μέρος 3 - Επαλήθευση της μέτρησής μας.
+  """Αυτη η συνθήκη και ο ορισμός είναι μεσα σε try block ώστε στην περίπτωση που είναι κλειστό 
+  το csvfileapp, να εμφανίσει ένα μήνυμα και να να παραλείψει το υπόλοιπο μέρος της τωρινής επανάληψης της συνάρτησης, 
+  επιστρέφοντας κενή τιμή. Σκοπός αυτού του μέρους είναι να επαληθεύσει αν το ύψος που υπολογίσαμε απέχει +- 20km από την τιμή
+  που μας δίνει η κλάση ISS. Έπειτα επισυνάπτει το αποτέλεσμα της συνθήκης στο csvfileapp""" 
+  try:
+    loc = ISS.coordinates()
+    true_h_to_eval = int(loc.elevation.km)
+    if h > true_h_to_eval - 20 and h < true_h_to_eval + 20:
+      csvfileapp.write(str(True) + "\n")
+    else:
+      csvfileapp.write(str(False) + "\n") 
+  except(ValueError):
+    show_msg("Value error occured", 0.06)
+    return  
+  return 
+ 
+#Η παρακάτω συνάρτηση μπορεί να εμφανίσει στην οθόνη του sense hat ένα string που θα περάσουμε
+#Η παράμετρος string πρέπει να είναι τύπου string, και το ss να είναι τύπου float
+def show_msg(string: str, ss: float): 
+  s.show_message(string, 
+                 text_colour = b, back_colour=w, 
+                 scroll_speed = ss)
+
+"""Στοιχεία που προσθέτωνται από csv αρχείο σε array προσθέτωνται ως: ['2'].
+ Χρησιμοποιώντας 2 εμφωλευμένους ‘για’ βρόχους, μπορούμε να περάσουμε από κάθε γράμμα,
+ σε κάθε στοιχείο του πίνακα, τον οποίο περνάμε στην συνάρτηση, και έπειτα ελέγχουμε αν το γράμμα είναι ψηφίο, όπου αν είναι 
+ το προσθέτουμε στην μεταβλητή newstr, την οποία επιστρέφουμε"""
+def return_numbers(Array): 
+  newstr = ''
+  for i in Array:
+      for j in range(0, len(i)):
+          if i[j].isdigit():
+              newstr += i[j]
+      newstr += ","
+  return newstr
+
+"""Ανοίγουμε την κάμερα, εμφανίζουμε κείμενο στην εικόνα της κάμερας, και τα στοιχεία που θα 
+εμφανίσουμε στο κείμενο (Στιγμιαίο χρόνο, θέση του ISS [ύψος, γεωγραφικό πλάτος, γεωγραφικό μήκος]) 
+τα επισυνάπτουμε στο info.csv"""
+def snap(height: float): #Το height που περνάμε είναι τύπου float
+  currlocation = ISS.coordinates()
+  cam.annotate_foreground = Color('red')
+  cam.annotate_text_size = 40
+  cam.annotate_text = str(str(datetime.now()) 
+                     + "," + str(currlocation.longitude) + "," 
+                     + str(currlocation.latitude) + "," 
+                     + str(height) + "m")
+  
+  info_csv.write(str(datetime.now()) + "," + 
+                     str(currlocation.latitude) + "," 
+                     + str(currlocation.longitude) + ","
+                     + str(height) + "m" + "\n")
+  cam.start_preview(alpha=100)
+  sleep(10)
+  cam.stop_preview()
+
+
+
+start_height = calculate_height(True) #Η πρώτη μέτρηση του ύψους.
+
+show_msg("G (Gravitational constant) = 6.6743 * 10^-11" 
+             + ", M (Earth Mass, kg)= 5.9722 * 10^24" + 
+             ", R (Earth Radius, m) = 6378.1 * 10^3", 0.04)
+#εμφανίζουμε στην οθόνη τις σταθερές που ορίσαμε 
+#(Βαρυτική σταθερά, Μάζα Γης, Ακτίνα Γης) στην οθόνη του Sense Hat
+
+snap(start_height) #σταθερά του πρώτου ύψους που μετράμε
+
+#τρίωρο calculate_height - εκτέλεση της calculate height για ~3ωρες.
+while datetime.now() < starttime + timedelta(seconds=totaltime):
+  calculate_height(False)
+  sleep(timeperloop)
+  
+csvfileapp.close() #Δεν θα χρειαστούμε άλλο το csvfileapp, συνεπώς, το κλείνουμε
+
+#csv σε λίστα
+#Διαβάζουμε με την reader() κάθε σειρά του csv αρχείου,
+#Επισυνάπτουμε όλα τα πρώτα στοιχεία των σειρών ως int στον πίνακα ListOfVals,
+#έχοντας πρώτα μετατρέψει την σειρά σε ένα string αριθμών χωρισμένων από κόμμα
+#με την συνάρτηση return_numbers   
+with open(str(base_folder) + "/ourresults.csv") as csvfile:
+    csv_read = reader(csvfile, delimiter=',')
+    for row in csv_read:
+      ListOfVals.append(int(return_numbers(row)[:-1].split(",")[0])) 
+
+#μέση τιμή   
+sumval = sum(ListOfVals)
+#Με την συνάρτηση sum παίρνουμε το άθροισμα των στοιχείων του πίνακα ListOfVals
+avgval = sumval / int(len(ListOfVals)) 
+show_msg(str(avgval) + "km average", 0.06) #Δείχνουμε τη μέση τιμή στην οθονη του Sense Hat
+
+end_height = calculate_height(True) #σταθερά του τελευταίου ύψους που μετράμε
+
+"""μετράει την διαφορά μεταξύ αρχικό και τελικό ύψος, βλέπει αν είναι 
+πάνω από 5m η διαφορά, και έπειτα επισυνάπτει το αποτέλεσμα στο info.csv"""
+if start_height - end_height >= 5:
+  snap(end_height) 
+  info_csv.write("\n-5m height difference during experiment," 
+                               + str(start_height - end_height))
+else:
+  info_csv.write("\nless than 5m height difference during experiment" 
+                               + str(start_height - end_height))
+
+info_csv.write("\n" + str(avgval))  #επισυνάπτει το μέσο ύψος που βρήκαμε στο info.csv
+info_csv.close() #κλείνει το τελευταίο αρχείο
+show_msg("Exit code 0", 0.07) #Δείχνουμε το πως είχαμε κανονικό τερματισμό (στο στυλ της C)
+
+s.clear() # Κάνουμε εκκαθάριση την οθόνη του Sense Hat
+cam.close()   #Κλείνουμε την κάμερα
+
+#Συνεπώς, εφόσον δεν υπάρχουν άλλες εντολές, άρα κλείνει το πρόγραμμα.
+
+
+#issgr.github.io - Ιστοσελίδα αρχειοθέτησης του πειράματος της ομάδας μας - εκεί βρίσκονται όλα τα αρχεία και τα κείμενα τα οποία συντάξαμε
