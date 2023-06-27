@@ -16,12 +16,12 @@
 
 ENGLISH (EN)
 
-This reporsitory was created by the team GRISS, which participated in the 2022-2023 ASTRO-Pi competition, by ESA. The team members are: Alexandros Karadimoglou, responsible for
-analysing the physics behind our experiment and helping write the documents, Panagiotis Karadimoglou, who was responsible for organising this reporsitory as well as our
+This repository was created by the team GRISS, which participated in the 2022-2023 ASTRO-Pi competition, by ESA. The team members are Alexandros Karadimoglou, responsible for
+analyzing the physics behind our experiment and helping write the documents, Panagiotis Karadimoglou, who was responsible for organizing this repository as well as our
 website, Panagiotis Skoulis, who was our chief programmer and also helped write the documents and last, Stelios Stefanis, the team's chief and main writer. The experiment was also
-carried out with the supervision of our physics teacher, Panagiotis Petridis as well as our philologist, Xrisostomos Samaras
+carried out with the help of our physics teacher, Panagiotis Petridis as well as our philologist, Xrisostomos Samaras
 
-In this reporsitory you can find our documents and our experiment report we wrote, after we recieved our experiment's results, a guide to the Sense Hat and its sensors,
-the python 3 code which we wrote for the experiement and the HTLM5/CSS3 code for our website and our experiment's results
+In this repository, you can find our documents and our experiment report we wrote after we received our experiment's results, a guide to the Sense Hat and its sensors,
+the Python 3 code which we wrote for the experiment, and the HTLM5/CSS3 code for our website and our experiment's results. However, all of our documents are written in Greek.
 
 Thank you!! (:
